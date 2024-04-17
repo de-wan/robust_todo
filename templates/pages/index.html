@@ -4,24 +4,24 @@
         Add Todo
     </button>
 </div>
-    {{ template "todos" .}}
+{{ template "todos" .}}
 {{ end }}
 
 {{ define "todos" }}
-    <div id="todos" class="px-4 p-2 divide-y pr-20">
-        {{ range .Todos }}
-            {{ template "todo-item" .}}
-        {{ end}}
-    </div>
+<div id="todos" class="px-4 p-2 divide-y pr-20">
+    {{ range .Todos }}
+    {{ template "todo-item" .}}
+    {{ end}}
+</div>
 {{ end }}
 
 {{ define "todo-item" }}
 <div class="todo-item flex gap-2 items-center group">
-    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" hx-put="/toggle-todo" hx-trigger="change" hx-target="closest .todo-item" hx-swap="outerHTML">
     {{ .Value }}
-    <div class="ml-auto">
-        <button class="hover:bg-orange-100 text-blue-500 hover:text-orange-500 p-1 px-2 rounded">Edit</button>
-        <button class="hover:bg-red-100 text-blue-500 hover:text-red-500 p-1 px-2 rounded">Delete</button>
+    <div class="ml-auto *:p-1 *:px-2">
+        <button class="hover:bg-orange-100 text-blue-500 hover:text-orange-500 rounded">Edit</button>
+        <button class="hover:bg-red-100 text-blue-500 hover:text-red-500 rounded">Delete</button>
     </div>
 </div>
 {{ end }}

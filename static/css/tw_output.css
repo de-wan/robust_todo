@@ -717,6 +717,15 @@ video {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+.\*\:p-1 > * {
+  padding: 0.25rem;
+}
+
+.\*\:px-2 > * {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
 .hover\:bg-blue-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(29 78 216 / var(--tw-bg-opacity));

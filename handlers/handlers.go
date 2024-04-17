@@ -35,3 +35,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl.ExecuteTemplate(w, "base", indexData)
 }
+
+func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
+	// todo: implement this
+}

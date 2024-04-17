@@ -11,9 +11,11 @@ import (
 func main() {
 	port := 3000
 
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
-	http.HandleFunc("/", handlers.IndexHandler)
+	http.HandleFunc("GET /", handlers.IndexHandler)
+
+	http.HandleFunc("PUT /toggle-todo", handlers.ToggleTodoHandler)
 
 	log.Printf("Starting server on port %d", port)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
