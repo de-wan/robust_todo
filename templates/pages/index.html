@@ -16,7 +16,12 @@
 {{ end }}
 
 {{ define "todo-item" }}
-<div class="todo-item">
-    Todo Item
+<div class="todo-item flex gap-2 items-center group">
+    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+    {{ .Value }}
+    <div class="ml-auto">
+        <button class="hover:bg-orange-100 text-blue-500 hover:text-orange-500 p-1 px-2 rounded">Edit</button>
+        <button class="hover:bg-red-100 text-blue-500 hover:text-red-500 p-1 px-2 rounded">Delete</button>
+    </div>
 </div>
 {{ end }}
