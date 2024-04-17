@@ -4,4 +4,19 @@
         Add Todo
     </button>
 </div>
+    {{ template "todos" .}}
+{{ end }}
+
+{{ define "todos" }}
+    <div id="todos" class="px-4 p-2 divide-y pr-20">
+        {{ range .Todos }}
+            {{ template "todo-item" .}}
+        {{ end}}
+    </div>
+{{ end }}
+
+{{ define "todo-item" }}
+<div class="todo-item">
+    Todo Item
+</div>
 {{ end }}

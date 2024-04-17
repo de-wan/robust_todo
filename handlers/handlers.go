@@ -6,6 +6,15 @@ import (
 	"net/http"
 )
 
+type TodoItem struct {
+	IsDone bool
+	Value  string
+}
+
+type IndexData struct {
+	Todos []TodoItem
+}
+
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.New("index.html").ParseFiles("templates/pages/index.html", "templates/layouts/base.html")
 	if err != nil {
@@ -14,5 +23,15 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl.ExecuteTemplate(w, "base", nil)
+	indexData := IndexData{
+		Todos: []TodoItem{
+			{
+				Value: "First Todo",
+			}, {
+				Value: "Second Todo",
+			},
+		},
+	}
+
+	tmpl.ExecuteTemplate(w, "base", indexData)
 }
