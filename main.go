@@ -4,12 +4,32 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/de-wan/robust_todo/handlers"
+	"github.com/joho/godotenv"
 )
 
+func Init() {
+	// load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
+
 func main() {
-	port := 3000
+	serverPort := 3000
+	serverPortString := os.Getenv("SERVER_PORT")
+	if serverPortString != "" {
+		serverPortParsed, err := strconv.ParseInt(serverPortString, 10, 64)
+		if err != nil {
+			log.Fatal("invalid variable SERVER_PORT in .env")
+		}
+
+		serverPort = int(serverPortParsed)
+	}
 
 	http.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
@@ -17,6 +37,6 @@ func main() {
 
 	http.HandleFunc("PUT /toggle-todo", handlers.ToggleTodoHandler)
 
-	log.Printf("Starting server on port %d", port)
-	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	log.Printf("Starting server on port %d", serverPort)
+	http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)
 }
