@@ -1,18 +1,21 @@
 package handlers
 
 import (
+	"context"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/de-wan/robust_todo/db_sqlc"
 )
 
 type TodoItem struct {
-	IsDone bool
-	Value  string
+	Uuid  string
+	Value string
 }
 
 type IndexData struct {
-	Todos []TodoItem
+	Todos []db_sqlc.ListTodosRow
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,14 +26,16 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	c := context.Background()
+	queries := db_sqlc.New(db_sqlc.DB)
+	todoItems, err := queries.ListTodos(c)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+	}
+
 	indexData := IndexData{
-		Todos: []TodoItem{
-			{
-				Value: "First Todo",
-			}, {
-				Value: "Second Todo",
-			},
-		},
+		Todos: todoItems,
 	}
 
 	tmpl.ExecuteTemplate(w, "base", indexData)
