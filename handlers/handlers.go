@@ -20,7 +20,7 @@ type IndexData struct {
 	Todos []db_sqlc.ListTodosRow
 }
 
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
+func renderTodoList(w http.ResponseWriter, templateName string) {
 	tmpl, err := template.New("index.html").ParseFiles("templates/pages/index.html", "templates/layouts/base.html")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -40,7 +40,11 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		Todos: todoItems,
 	}
 
-	tmpl.ExecuteTemplate(w, "base", indexData)
+	tmpl.ExecuteTemplate(w, templateName, indexData)
+}
+
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	renderTodoList(w, "base")
 }
 
 type AddTodoFormData struct {
@@ -127,8 +131,8 @@ func AddTodoCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// return redirect to todo list
-	w.Header().Set("HX-Redirect", "/")
+	// select and execute index template
+	renderTodoList(w, "content")
 }
 
 func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
