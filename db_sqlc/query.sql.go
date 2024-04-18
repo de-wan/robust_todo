@@ -7,8 +7,6 @@ package db_sqlc
 
 import (
 	"context"
-	"database/sql"
-	"time"
 )
 
 const addTodo = `-- name: AddTodo :exec
@@ -27,17 +25,14 @@ func (q *Queries) AddTodo(ctx context.Context, arg AddTodoParams) error {
 }
 
 const listTodos = `-- name: ListTodos :many
-SELECT uuid, value, deadline, done_at, created_at
+SELECT uuid, value
     FROM todo
     ORDER BY created_at DESC
 `
 
 type ListTodosRow struct {
-	Uuid      string
-	Value     string
-	Deadline  sql.NullTime
-	DoneAt    sql.NullTime
-	CreatedAt time.Time
+	Uuid  string
+	Value string
 }
 
 func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
@@ -49,13 +44,7 @@ func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
 	var items []ListTodosRow
 	for rows.Next() {
 		var i ListTodosRow
-		if err := rows.Scan(
-			&i.Uuid,
-			&i.Value,
-			&i.Deadline,
-			&i.DoneAt,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.Uuid, &i.Value); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

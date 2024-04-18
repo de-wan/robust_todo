@@ -39,6 +39,8 @@ func main() {
 	http.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	http.HandleFunc("GET /", handlers.IndexHandler)
+	http.HandleFunc("GET /add-todo", handlers.AddTodoViewHandler)
+	http.HandleFunc("POST /add-todo", handlers.AddTodoCreateHandler)
 	http.HandleFunc("PUT /toggle-todo", handlers.ToggleTodoHandler)
 
 	log.Printf("Starting server on port %d", serverPort)

@@ -3,6 +3,6 @@ INSERT INTO todo (uuid, value)
     VALUES (?, ?);
 
 -- name: ListTodos :many
-SELECT uuid, value, deadline, done_at, created_at
+SELECT uuid, value
     FROM todo
     ORDER BY created_at DESC;
