@@ -7,11 +7,12 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/de-wan/robust_todo/db_sqlc"
 	"github.com/de-wan/robust_todo/handlers"
 	"github.com/joho/godotenv"
 )
 
-func Init() {
+func loadEnv() {
 	// load .env file
 	err := godotenv.Load()
 	if err != nil {
@@ -20,6 +21,8 @@ func Init() {
 }
 
 func main() {
+	loadEnv()
+
 	serverPort := 3000
 	serverPortString := os.Getenv("SERVER_PORT")
 	if serverPortString != "" {
@@ -31,10 +34,11 @@ func main() {
 		serverPort = int(serverPortParsed)
 	}
 
+	db_sqlc.Init()
+
 	http.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	http.HandleFunc("GET /", handlers.IndexHandler)
-
 	http.HandleFunc("PUT /toggle-todo", handlers.ToggleTodoHandler)
 
 	log.Printf("Starting server on port %d", serverPort)
