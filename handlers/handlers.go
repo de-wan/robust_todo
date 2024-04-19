@@ -427,3 +427,27 @@ func ArchiveTodosViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	renderArchivedTodoList(w, templateName)
 }
+
+func RestoreTodoActionHandler(w http.ResponseWriter, r *http.Request) {
+	// get uuid from url
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+	uuid := parts[2]
+
+	// preparing db query
+	c := context.Background()
+	queries := db_sqlc.New(db_sqlc.DB)
+
+	// archiving todo
+	err := queries.RestoreTodo(c, uuid)
+	if err != nil {
+		renderAlert(w, "Whoops!...Something went wrong", "base", 3)
+		log.Println(err)
+		return
+	}
+
+	// render nothing to remove todo item from list
+}

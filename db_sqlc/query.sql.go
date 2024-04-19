@@ -137,6 +137,15 @@ func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
 	return items, nil
 }
 
+const restoreTodo = `-- name: RestoreTodo :exec
+UPDATE todo SET archived_at = NULL WHERE uuid = ?
+`
+
+func (q *Queries) RestoreTodo(ctx context.Context, uuid string) error {
+	_, err := q.db.ExecContext(ctx, restoreTodo, uuid)
+	return err
+}
+
 const toggleTodo = `-- name: ToggleTodo :exec
 UPDATE todo SET
     done_at =

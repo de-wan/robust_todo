@@ -18,7 +18,7 @@
     </div>
 
     <div class="*:p-1 *:px-2">
-        <button class="hover:bg-green-100 text-blue-500 hover:text-green-500 rounded" hx-delete="/restore-todo/{{ .Uuid }}" hx-trigger="click" hx-target="closest .todo-item" hx-swap="outerHTML" hx-confirm="Are you sure you want to restore this todo item?">Restore</button>
+        <button class="hover:bg-green-100 text-blue-500 hover:text-green-500 rounded" hx-put="/restore-todo/{{ .Uuid }}" hx-trigger="click" hx-target="closest .todo-item" hx-swap="outerHTML" hx-confirm="Are you sure you want to restore this todo item?">Restore</button>
     </div>
 </div>
 {{ end }}

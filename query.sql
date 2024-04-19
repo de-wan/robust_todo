@@ -32,3 +32,5 @@ SELECT uuid, value, done_at
     WHERE archived_at IS NOT NULL
     ORDER BY created_at DESC;
 
+-- name: RestoreTodo :exec
+UPDATE todo SET archived_at = NULL WHERE uuid = ?;
