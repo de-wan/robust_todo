@@ -44,6 +44,7 @@ func main() {
 	http.HandleFunc("GET /edit-todo/", handlers.EditTodoViewHandler)
 	http.HandleFunc("PUT /edit-todo/", handlers.EditTodoActionHandler)
 	http.HandleFunc("PUT /toggle-todo/", handlers.ToggleTodoHandler)
+	http.HandleFunc("DELETE /archive-todo/", handlers.ArchiveTodoActionHandler)
 
 	log.Printf("Starting server on port %d", serverPort)
 	http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)

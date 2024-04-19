@@ -25,6 +25,15 @@ func (q *Queries) AddTodo(ctx context.Context, arg AddTodoParams) error {
 	return err
 }
 
+const archiveTodo = `-- name: ArchiveTodo :exec
+UPDATE todo SET archived_at = NOW() WHERE uuid = ?
+`
+
+func (q *Queries) ArchiveTodo(ctx context.Context, uuid string) error {
+	_, err := q.db.ExecContext(ctx, archiveTodo, uuid)
+	return err
+}
+
 const editTodo = `-- name: EditTodo :exec
 UPDATE todo SET value = ? WHERE uuid = ?
 `
@@ -59,6 +68,7 @@ func (q *Queries) GetTodo(ctx context.Context, uuid string) (GetTodoRow, error) 
 const listTodos = `-- name: ListTodos :many
 SELECT uuid, value, done_at
     FROM todo
+    WHERE archived_at IS NULL
     ORDER BY created_at DESC
 `
 

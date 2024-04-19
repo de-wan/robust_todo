@@ -101,7 +101,14 @@ func renderAlert(w http.ResponseWriter, alert string, layout string, alertType i
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	renderTodoList(w, "base")
+	// determining whether to render whole page or just the content
+	templateName := "base"
+	incomingTarget := r.Header.Get("HX-Target")
+
+	if incomingTarget == "content" {
+		templateName = "content" // sets the render to content
+	}
+	renderTodoList(w, templateName)
 }
 
 type AddTodoFormData struct {
@@ -331,6 +338,7 @@ func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
 	c := context.Background()
 	queries := db_sqlc.New(db_sqlc.DB)
 
+	// toggling todo
 	err := queries.ToggleTodo(c, uuid)
 	if err != nil {
 		renderAlert(w, "Whoops!...Something went wrong", "base", 3)
@@ -338,6 +346,7 @@ func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// retrieving todo to display
 	todoItem, err := queries.GetTodo(c, uuid)
 	if err != nil {
 		renderAlert(w, "Whoops!...Something went wrong", "base", 3)
@@ -353,4 +362,28 @@ func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl.ExecuteTemplate(w, "todo-item", todoItem)
+}
+
+func ArchiveTodoActionHandler(w http.ResponseWriter, r *http.Request) {
+	// get uuid from url
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+	uuid := parts[2]
+
+	// preparing db query
+	c := context.Background()
+	queries := db_sqlc.New(db_sqlc.DB)
+
+	// archiving todo
+	err := queries.ArchiveTodo(c, uuid)
+	if err != nil {
+		renderAlert(w, "Whoops!...Something went wrong", "base", 3)
+		log.Println(err)
+		return
+	}
+
+	// render nothing to remove todo item from list
 }
