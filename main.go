@@ -40,7 +40,9 @@ func main() {
 
 	http.HandleFunc("GET /", handlers.IndexHandler)
 	http.HandleFunc("GET /add-todo", handlers.AddTodoViewHandler)
-	http.HandleFunc("POST /add-todo", handlers.AddTodoCreateHandler)
+	http.HandleFunc("POST /add-todo", handlers.AddTodoActionHandler)
+	http.HandleFunc("GET /edit-todo/", handlers.EditTodoViewHandler)
+	http.HandleFunc("PUT /edit-todo/", handlers.EditTodoActionHandler)
 	http.HandleFunc("PUT /toggle-todo/", handlers.ToggleTodoHandler)
 
 	log.Printf("Starting server on port %d", serverPort)

@@ -18,4 +18,7 @@ UPDATE todo SET
             ELSE NULL
         END
 WHERE uuid = ?;
+
+-- name: EditTodo :exec
+UPDATE todo SET value = ? WHERE uuid = ?;
                     

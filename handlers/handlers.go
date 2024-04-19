@@ -126,18 +126,18 @@ func AddTodoViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check for input errors
+	// determining whether to render whole page or just the content
 	templateName := "base"
 	incomingTarget := r.Header.Get("HX-Target")
 
 	if incomingTarget == "content" {
-		templateName = "content"
+		templateName = "content" // sets the render to content
 	}
 
 	tmpl.ExecuteTemplate(w, templateName, AddTodoData{})
 }
 
-func AddTodoCreateHandler(w http.ResponseWriter, r *http.Request) {
+func AddTodoActionHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse form data
 	err := r.ParseForm()
 	if err != nil {
@@ -192,7 +192,25 @@ func AddTodoCreateHandler(w http.ResponseWriter, r *http.Request) {
 	renderTodoList(w, "content")
 }
 
-func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
+type EditTodoFormData struct {
+	Uuid         string
+	Todo         string
+	ContinueEdit string
+}
+
+type EditTodoFormErrors struct {
+	Todo []string
+}
+
+type EditTodoData struct {
+	AlertMsg   string
+	AlertClass string
+	FormData   EditTodoFormData
+	FormErrors EditTodoFormErrors
+}
+
+func EditTodoViewHandler(w http.ResponseWriter, r *http.Request) {
+	// get uuid from url
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 3 {
 		http.Error(w, "Invalid URL", http.StatusBadRequest)
@@ -200,8 +218,117 @@ func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	uuid := parts[2]
 
-	c := context.Background()
+	tmpl, err := template.New("edit-todo.html").ParseFiles("templates/pages/edit-todo.html", "templates/layouts/base.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
 
+	// determining whether to render whole page or just the content
+	templateName := "base"
+	incomingTarget := r.Header.Get("HX-Target")
+
+	if incomingTarget == "content" {
+		templateName = "content" // sets the render to content
+	}
+
+	// preparing db query
+	c := context.Background()
+	queries := db_sqlc.New(db_sqlc.DB)
+
+	todoItem, err := queries.GetTodo(c, uuid)
+	if err != nil {
+		renderAlert(w, "Whoops!...Something went wrong", "base", 3)
+		log.Println(err)
+		return
+	}
+
+	editTodoData := EditTodoData{
+		FormData: EditTodoFormData{
+			Uuid: uuid,
+			Todo: todoItem.Value,
+		},
+	}
+
+	tmpl.ExecuteTemplate(w, templateName, editTodoData)
+}
+
+func EditTodoActionHandler(w http.ResponseWriter, r *http.Request) {
+	// get uuid from url
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+	uuid := parts[2]
+
+	// Parse form data
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
+		return
+	}
+
+	// create form template
+	formTmpl, err := template.New("edit-todo.html").ParseFiles("templates/pages/edit-todo.html", "templates/layouts/base.html")
+	if err != nil {
+		editTodoData := EditTodoData{
+			AlertMsg:   "Whoops... Something went wrong",
+			AlertClass: "bg-red-100 border border-red-400 text-red-700 ",
+		}
+		formTmpl.ExecuteTemplate(w, "content", editTodoData)
+		return
+	}
+
+	// check for input error
+	formData := EditTodoFormData{
+		Todo: r.FormValue("value"),
+	}
+
+	editTodoData := EditTodoData{}
+
+	if strings.TrimSpace(formData.Todo) == "" {
+		editTodoData.AlertMsg = "Check your form and try again"
+		editTodoData.AlertClass = "bg-red-100 border border-red-400 text-red-700 "
+		editTodoData.FormErrors.Todo = append(editTodoData.FormErrors.Todo, "This field is required")
+	}
+
+	if editTodoData.AlertMsg != "" {
+		formTmpl.ExecuteTemplate(w, "content", editTodoData)
+		return
+	}
+
+	// prepare and run update query
+	c := context.Background()
+	queries := db_sqlc.New(db_sqlc.DB)
+
+	err = queries.EditTodo(c, db_sqlc.EditTodoParams{
+		Uuid:  uuid,
+		Value: formData.Todo,
+	})
+	if err != nil {
+		editTodoData.AlertMsg = "Whoops!... Unable to update todo record."
+		editTodoData.AlertClass = "bg-red-100 border border-red-400 text-red-700 "
+		formTmpl.ExecuteTemplate(w, "content", editTodoData)
+		return
+	}
+
+	// select and execute index template
+	renderTodoList(w, "content")
+}
+
+func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {
+	// get uuid from url
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+	uuid := parts[2]
+
+	// preparing db query
+	c := context.Background()
 	queries := db_sqlc.New(db_sqlc.DB)
 
 	err := queries.ToggleTodo(c, uuid)

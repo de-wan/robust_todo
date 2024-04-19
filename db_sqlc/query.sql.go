@@ -25,6 +25,20 @@ func (q *Queries) AddTodo(ctx context.Context, arg AddTodoParams) error {
 	return err
 }
 
+const editTodo = `-- name: EditTodo :exec
+UPDATE todo SET value = ? WHERE uuid = ?
+`
+
+type EditTodoParams struct {
+	Value string
+	Uuid  string
+}
+
+func (q *Queries) EditTodo(ctx context.Context, arg EditTodoParams) error {
+	_, err := q.db.ExecContext(ctx, editTodo, arg.Value, arg.Uuid)
+	return err
+}
+
 const getTodo = `-- name: GetTodo :one
 SELECT uuid, value, done_at FROM todo WHERE uuid = ?
 `
