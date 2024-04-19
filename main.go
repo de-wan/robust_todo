@@ -41,7 +41,7 @@ func main() {
 	http.HandleFunc("GET /", handlers.IndexHandler)
 	http.HandleFunc("GET /add-todo", handlers.AddTodoViewHandler)
 	http.HandleFunc("POST /add-todo", handlers.AddTodoCreateHandler)
-	http.HandleFunc("PUT /toggle-todo", handlers.ToggleTodoHandler)
+	http.HandleFunc("PUT /toggle-todo/", handlers.ToggleTodoHandler)
 
 	log.Printf("Starting server on port %d", serverPort)
 	http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)

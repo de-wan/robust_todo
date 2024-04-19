@@ -7,6 +7,7 @@ package db_sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addTodo = `-- name: AddTodo :exec
@@ -24,15 +25,33 @@ func (q *Queries) AddTodo(ctx context.Context, arg AddTodoParams) error {
 	return err
 }
 
+const getTodo = `-- name: GetTodo :one
+SELECT uuid, value, done_at FROM todo WHERE uuid = ?
+`
+
+type GetTodoRow struct {
+	Uuid   string
+	Value  string
+	DoneAt sql.NullTime
+}
+
+func (q *Queries) GetTodo(ctx context.Context, uuid string) (GetTodoRow, error) {
+	row := q.db.QueryRowContext(ctx, getTodo, uuid)
+	var i GetTodoRow
+	err := row.Scan(&i.Uuid, &i.Value, &i.DoneAt)
+	return i, err
+}
+
 const listTodos = `-- name: ListTodos :many
-SELECT uuid, value
+SELECT uuid, value, done_at
     FROM todo
     ORDER BY created_at DESC
 `
 
 type ListTodosRow struct {
-	Uuid  string
-	Value string
+	Uuid   string
+	Value  string
+	DoneAt sql.NullTime
 }
 
 func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
@@ -44,7 +63,7 @@ func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
 	var items []ListTodosRow
 	for rows.Next() {
 		var i ListTodosRow
-		if err := rows.Scan(&i.Uuid, &i.Value); err != nil {
+		if err := rows.Scan(&i.Uuid, &i.Value, &i.DoneAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -56,4 +75,19 @@ func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const toggleTodo = `-- name: ToggleTodo :exec
+UPDATE todo SET
+    done_at =
+        CASE WHEN done_at IS NULL
+            THEN NOW()
+            ELSE NULL
+        END
+WHERE uuid = ?
+`
+
+func (q *Queries) ToggleTodo(ctx context.Context, uuid string) error {
+	_, err := q.db.ExecContext(ctx, toggleTodo, uuid)
+	return err
 }
