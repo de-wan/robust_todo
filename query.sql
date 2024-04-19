@@ -25,4 +25,10 @@ UPDATE todo SET value = ? WHERE uuid = ?;
 
 -- name: ArchiveTodo :exec
 UPDATE todo SET archived_at = NOW() WHERE uuid = ?;
-                    
+
+-- name: ListArchivedTodos :many
+SELECT uuid, value, done_at
+    FROM todo
+    WHERE archived_at IS NOT NULL
+    ORDER BY created_at DESC;
+

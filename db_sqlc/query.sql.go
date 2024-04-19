@@ -65,6 +65,42 @@ func (q *Queries) GetTodo(ctx context.Context, uuid string) (GetTodoRow, error) 
 	return i, err
 }
 
+const listArchivedTodos = `-- name: ListArchivedTodos :many
+SELECT uuid, value, done_at
+    FROM todo
+    WHERE archived_at IS NOT NULL
+    ORDER BY created_at DESC
+`
+
+type ListArchivedTodosRow struct {
+	Uuid   string
+	Value  string
+	DoneAt sql.NullTime
+}
+
+func (q *Queries) ListArchivedTodos(ctx context.Context) ([]ListArchivedTodosRow, error) {
+	rows, err := q.db.QueryContext(ctx, listArchivedTodos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListArchivedTodosRow
+	for rows.Next() {
+		var i ListArchivedTodosRow
+		if err := rows.Scan(&i.Uuid, &i.Value, &i.DoneAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTodos = `-- name: ListTodos :many
 SELECT uuid, value, done_at
     FROM todo

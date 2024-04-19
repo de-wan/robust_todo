@@ -45,6 +45,35 @@ func renderTodoList(w http.ResponseWriter, templateName string) {
 	tmpl.ExecuteTemplate(w, templateName, indexData)
 }
 
+type ArchivedData struct {
+	AlertMsg   string
+	AlertClass string
+	Todos      []db_sqlc.ListArchivedTodosRow
+}
+
+func renderArchivedTodoList(w http.ResponseWriter, templateName string) {
+	tmpl, err := template.New("index.html").ParseFiles("templates/pages/archived.html", "templates/layouts/base.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
+
+	c := context.Background()
+	queries := db_sqlc.New(db_sqlc.DB)
+	todoItems, err := queries.ListArchivedTodos(c)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+	}
+
+	archivedData := ArchivedData{
+		Todos: todoItems,
+	}
+
+	tmpl.ExecuteTemplate(w, templateName, archivedData)
+}
+
 type AlertData struct {
 	AlertMsg   string
 	AlertClass string
@@ -386,4 +415,15 @@ func ArchiveTodoActionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// render nothing to remove todo item from list
+}
+
+func ArchiveTodosViewHandler(w http.ResponseWriter, r *http.Request) {
+	// determining whether to render whole page or just the content
+	templateName := "base"
+	incomingTarget := r.Header.Get("HX-Target")
+
+	if incomingTarget == "content" {
+		templateName = "content" // sets the render to content
+	}
+	renderArchivedTodoList(w, templateName)
 }

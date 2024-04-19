@@ -1,0 +1,24 @@
+{{ define "content" }}
+{{ template "todos" .}}
+{{ end }}
+
+{{ define "todos" }}
+<div id="todos" class="px-4 p-2 divide-y pr-20">
+    {{ range .Todos }}
+    {{ template "todo-item" .}}
+    {{ end}}
+</div>
+{{ end }}
+
+{{ define "todo-item" }}
+<div class="todo-item flex justify-between items-center group">
+    <div class="flex gap-2">
+        <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" {{if .DoneAt.Valid }}checked{{end}} disabled>
+        <div class="{{if .DoneAt.Valid }}line-through{{end}}">{{ .Value }}</div>
+    </div>
+
+    <div class="*:p-1 *:px-2">
+        <button class="hover:bg-green-100 text-blue-500 hover:text-green-500 rounded" hx-delete="/restore-todo/{{ .Uuid }}" hx-trigger="click" hx-target="closest .todo-item" hx-swap="outerHTML" hx-confirm="Are you sure you want to restore this todo item?">Restore</button>
+    </div>
+</div>
+{{ end }}
