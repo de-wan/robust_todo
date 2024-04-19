@@ -1,6 +1,5 @@
 {{define "content"}}
 <form class="p-2 pr-10" hx-post="/add-todo" hx-target="#content">
-    {{ template "alert" .}}
     <div class="flex flex-col space-y-2">
         <label for="inputField" class="text-sm font-medium text-gray-700">Todo</label>
         <textarea id="inputField" type="text"
@@ -20,12 +19,4 @@
         </button>
     </div>
 </form>
-{{end}}
-{{define "alert"}}
-{{if ne .ErrorMsg ""}}
-<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-3" role="alert">
-    <strong class="font-bold">Error!</strong>
-    <span class="block sm:inline">{{ .ErrorMsg }}</span>
-</div>
-{{end}}
 {{end}}
