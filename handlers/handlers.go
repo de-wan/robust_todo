@@ -111,12 +111,23 @@ func renderTodoList(w http.ResponseWriter, templateName string, renderIndexData 
 }
 
 type ArchivedData struct {
-	AlertMsg   string
-	AlertClass string
-	Todos      []db_sqlc.ListArchivedTodosRow
+	AlertMsg         string
+	AlertClass       string
+	Todos            []db_sqlc.ListArchivedTodosRow
+	Page             int32
+	PerPage          int32
+	PageCount        int32
+	OOBPageIndicator bool
 }
 
-func renderArchivedTodoList(w http.ResponseWriter, templateName string) {
+type RenderArchivedData struct {
+	TriggerName string
+	Search      string
+	Page        int32
+	PerPage     int32
+}
+
+func renderArchivedTodoList(w http.ResponseWriter, templateName string, renderArchivedData RenderArchivedData) {
 	tmpl, err := template.New("index.html").ParseFiles("templates/pages/archived.html", "templates/layouts/base.html")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -124,19 +135,70 @@ func renderArchivedTodoList(w http.ResponseWriter, templateName string) {
 		return
 	}
 
+	currentPage := int32(1)
+	if renderArchivedData.Page > 1 {
+		currentPage = renderArchivedData.Page
+	}
+
+	if renderArchivedData.TriggerName == "search" {
+		currentPage = 1
+	}
+
+	perPage := int32(5)
+	if renderArchivedData.PerPage > 5 {
+		perPage = renderArchivedData.PerPage
+	}
+
+	offset := (currentPage - 1) * perPage
+	if offset < 0 {
+		offset = 0
+	}
+
+	search := "%" + renderArchivedData.Search + "%"
+
 	c := context.Background()
 	queries := db_sqlc.New(db_sqlc.DB)
-	todoItems, err := queries.ListArchivedTodos(c)
+	todoItems, err := queries.ListArchivedTodos(c, db_sqlc.ListArchivedTodosParams{
+		Search: search,
+		Limit:  perPage,
+		Offset: offset,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err)
 	}
 
+	// retrieve todos count
+	todosCount, err := queries.TotalArchivedTodos(c, search)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+	}
+
+	// calculate number of pages
+	numOfPages := float64(1)
+	if todosCount > 0 {
+		numOfPages = math.Ceil(float64(todosCount) / float64(perPage))
+	}
+
+	var ooBPageIndicator bool
+	if renderArchivedData.TriggerName == "search" || renderArchivedData.TriggerName == "per_page" {
+		ooBPageIndicator = true
+	}
+
 	archivedData := ArchivedData{
-		Todos: todoItems,
+		Todos:            todoItems,
+		Page:             currentPage,
+		PerPage:          perPage,
+		PageCount:        int32(numOfPages),
+		OOBPageIndicator: ooBPageIndicator,
 	}
 
 	tmpl.ExecuteTemplate(w, templateName, archivedData)
+
+	if ooBPageIndicator {
+		tmpl.ExecuteTemplate(w, "page-indicator", archivedData)
+	}
 }
 
 type AlertData struct {
@@ -511,6 +573,22 @@ func ArchiveTodoActionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ArchiveTodosViewHandler(w http.ResponseWriter, r *http.Request) {
+	// extract search from query param
+	search := r.URL.Query().Get("search")
+
+	// extract page from query param
+	rawPageStr := r.URL.Query().Get("page")
+	rawPageInt, _ := strconv.Atoi(rawPageStr)
+	page := int32(rawPageInt)
+
+	// extract per_page from query param
+	rawPerPageStr := r.URL.Query().Get("per_page")
+	rawPerPage, _ := strconv.Atoi(rawPerPageStr)
+	perPage := int32(rawPerPage)
+
+	// extract the source of the trigger
+	triggerName := r.Header.Get("HX-Trigger-Name")
+
 	// determining whether to render whole page or just the content
 	templateName := "base"
 	incomingTarget := r.Header.Get("HX-Target")
@@ -518,7 +596,19 @@ func ArchiveTodosViewHandler(w http.ResponseWriter, r *http.Request) {
 	if incomingTarget == "content" {
 		templateName = "content" // sets the render to content
 	}
-	renderArchivedTodoList(w, templateName)
+
+	if incomingTarget == "todos" {
+		templateName = "todos"
+	}
+
+	renderArchivedData := RenderArchivedData{
+		TriggerName: triggerName,
+		Search:      search,
+		Page:        page,
+		PerPage:     perPage,
+	}
+
+	renderArchivedTodoList(w, templateName, renderArchivedData)
 }
 
 func RestoreTodoActionHandler(w http.ResponseWriter, r *http.Request) {
