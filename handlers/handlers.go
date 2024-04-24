@@ -4,7 +4,9 @@ import (
 	"context"
 	"html/template"
 	"log"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/de-wan/robust_todo/db_sqlc"
@@ -17,12 +19,23 @@ type TodoItem struct {
 }
 
 type IndexData struct {
-	AlertMsg   string
-	AlertClass string
-	Todos      []db_sqlc.ListTodosRow
+	AlertMsg         string
+	AlertClass       string
+	Todos            []db_sqlc.ListTodosRow
+	Page             int32
+	PerPage          int32
+	PageCount        int32
+	OOBPageIndicator bool
 }
 
-func renderTodoList(w http.ResponseWriter, templateName string) {
+type RenderIndexData struct {
+	TriggerName string
+	Search      string
+	Page        int32
+	PerPage     int32
+}
+
+func renderTodoList(w http.ResponseWriter, templateName string, renderIndexData RenderIndexData) {
 	tmpl, err := template.New("index.html").ParseFiles("templates/pages/index.html", "templates/layouts/base.html")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -30,19 +43,71 @@ func renderTodoList(w http.ResponseWriter, templateName string) {
 		return
 	}
 
+	currentPage := int32(1)
+	if renderIndexData.Page > 1 {
+		currentPage = renderIndexData.Page
+	}
+
+	if renderIndexData.TriggerName == "search" {
+		currentPage = 1
+	}
+
+	perPage := int32(5)
+	if renderIndexData.PerPage > 5 {
+		perPage = renderIndexData.PerPage
+	}
+
+	offset := (currentPage - 1) * perPage
+	if offset < 0 {
+		offset = 0
+	}
+
+	search := "%" + renderIndexData.Search + "%"
+
+	// retrieve todos
 	c := context.Background()
 	queries := db_sqlc.New(db_sqlc.DB)
-	todoItems, err := queries.ListTodos(c)
+	todoItems, err := queries.ListTodos(c, db_sqlc.ListTodosParams{
+		Search: search,
+		Limit:  perPage,
+		Offset: offset,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err)
 	}
 
+	// retrieve todos count
+	todosCount, err := queries.TotalTodos(c, search)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+	}
+
+	// calculate number of pages
+	numOfPages := float64(1)
+	if todosCount > 0 {
+		numOfPages = math.Ceil(float64(todosCount) / float64(perPage))
+	}
+
+	var ooBPageIndicator bool
+	if renderIndexData.TriggerName == "search" || renderIndexData.TriggerName == "per_page" {
+		ooBPageIndicator = true
+	}
+
 	indexData := IndexData{
-		Todos: todoItems,
+		Todos:            todoItems,
+		Page:             currentPage,
+		PerPage:          perPage,
+		PageCount:        int32(numOfPages),
+		OOBPageIndicator: ooBPageIndicator,
 	}
 
 	tmpl.ExecuteTemplate(w, templateName, indexData)
+
+	if ooBPageIndicator {
+		tmpl.ExecuteTemplate(w, "page-indicator", indexData)
+	}
 }
 
 type ArchivedData struct {
@@ -130,6 +195,22 @@ func renderAlert(w http.ResponseWriter, alert string, layout string, alertType i
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	// extract search from query param
+	search := r.URL.Query().Get("search")
+
+	// extract page from query param
+	rawPageStr := r.URL.Query().Get("page")
+	rawPageInt, _ := strconv.Atoi(rawPageStr)
+	page := int32(rawPageInt)
+
+	// extract per_page from query param
+	rawPerPageStr := r.URL.Query().Get("per_page")
+	rawPerPage, _ := strconv.Atoi(rawPerPageStr)
+	perPage := int32(rawPerPage)
+
+	// extract the source of the trigger
+	triggerName := r.Header.Get("HX-Trigger-Name")
+
 	// determining whether to render whole page or just the content
 	templateName := "base"
 	incomingTarget := r.Header.Get("HX-Target")
@@ -137,7 +218,19 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	if incomingTarget == "content" {
 		templateName = "content" // sets the render to content
 	}
-	renderTodoList(w, templateName)
+
+	if incomingTarget == "todos" {
+		templateName = "todos"
+	}
+
+	renderIndexData := RenderIndexData{
+		TriggerName: triggerName,
+		Search:      search,
+		Page:        page,
+		PerPage:     perPage,
+	}
+
+	renderTodoList(w, templateName, renderIndexData)
 }
 
 type AddTodoFormData struct {
@@ -225,7 +318,7 @@ func AddTodoActionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// select and execute index template
-	renderTodoList(w, "content")
+	renderTodoList(w, "content", RenderIndexData{})
 }
 
 type EditTodoFormData struct {
@@ -351,7 +444,7 @@ func EditTodoActionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// select and execute index template
-	renderTodoList(w, "content")
+	renderTodoList(w, "content", RenderIndexData{})
 }
 
 func ToggleTodoHandler(w http.ResponseWriter, r *http.Request) {

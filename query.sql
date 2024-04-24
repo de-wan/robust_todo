@@ -5,9 +5,17 @@ INSERT INTO todo (uuid, value)
 -- name: ListTodos :many
 SELECT uuid, value, done_at
     FROM todo
-    WHERE archived_at IS NULL
-    ORDER BY created_at DESC;
+    WHERE archived_at IS NULL AND
+        value LIKE sqlc.arg('search')
+    ORDER BY created_at DESC
+    LIMIT ?
+    OFFSET ?;
 
+-- name: TotalTodos :one
+SELECT count(1) FROM todo
+    WHERE archived_at IS NULL AND
+        value LIKE sqlc.arg('search');
+        
 -- name: GetTodo :one
 SELECT uuid, value, done_at FROM todo WHERE uuid = ?;
 

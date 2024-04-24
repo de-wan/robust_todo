@@ -104,9 +104,18 @@ func (q *Queries) ListArchivedTodos(ctx context.Context) ([]ListArchivedTodosRow
 const listTodos = `-- name: ListTodos :many
 SELECT uuid, value, done_at
     FROM todo
-    WHERE archived_at IS NULL
+    WHERE archived_at IS NULL AND
+        value LIKE ?
     ORDER BY created_at DESC
+    LIMIT ?
+    OFFSET ?
 `
+
+type ListTodosParams struct {
+	Search string
+	Limit  int32
+	Offset int32
+}
 
 type ListTodosRow struct {
 	Uuid   string
@@ -114,8 +123,8 @@ type ListTodosRow struct {
 	DoneAt sql.NullTime
 }
 
-func (q *Queries) ListTodos(ctx context.Context) ([]ListTodosRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTodos)
+func (q *Queries) ListTodos(ctx context.Context, arg ListTodosParams) ([]ListTodosRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTodos, arg.Search, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -159,4 +168,17 @@ WHERE uuid = ?
 func (q *Queries) ToggleTodo(ctx context.Context, uuid string) error {
 	_, err := q.db.ExecContext(ctx, toggleTodo, uuid)
 	return err
+}
+
+const totalTodos = `-- name: TotalTodos :one
+SELECT count(1) FROM todo
+    WHERE archived_at IS NULL AND
+        value LIKE ?
+`
+
+func (q *Queries) TotalTodos(ctx context.Context, search string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, totalTodos, search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }

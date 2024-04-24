@@ -2,8 +2,8 @@
 
 <div class="flex justify-end gap-2 p-2">
     <div>
-        <input class="w-50 px-4 py-2 border border-2 rounded-md focus:outline-none focus:border-indigo-500"
-            placeholder="search" />
+        <input hx-get="/" hx-target="#todos" class="table-control w-50 px-4 py-2 border border-2 rounded-md focus:outline-none focus:border-indigo-500"
+            placeholder="search" name="search" hx-trigger="keyup changed delay:500ms" class="table-control" hx-include=".table-control"/>
     </div>
     <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         hx-get="/add-todo" hx-trigger="click" hx-target="#content" hx-swap="innerHTML">
@@ -14,18 +14,8 @@
 {{ template "todos" .}}
 
 <div class="p-2 flex gap-2 items-center">
-    <div>
-        <select class="px-4 py-2 border border-2 rounded-md focus:outline-none focus:border-indigo-500">
-            <option>5 per page</option>
-            <option>10 per page</option>
-            <option>25 per page</option>
-            <option>50 per page</option>
-        </select>
-    </div>
-
-    <div>
-        <input type="number" class="w-20 px-4 py-2 border border-2 rounded-md focus:outline-none focus:border-indigo-500" min="1"> Of <span class="font-bold">10</span> Pages
-    </div>
+    {{template "per-page-selector" .}}
+    {{template "page-indicator" .}}
 </div>
 {{ end }}
 
@@ -55,3 +45,20 @@
     </div>
 </div>
 {{ end }}
+
+{{ define "per-page-selector" }}
+<div>
+        <select hx-get="/" hx-trigger="change" hx-target="#todos" hx-include=".table-control" class="table-control px-4 py-2 border border-2 rounded-md focus:outline-none focus:border-indigo-500" name="per_page">
+            <option {{if eq .PerPage 5}}selected{{end}} value="5">5 per page</option>
+            <option {{if eq .PerPage 10}}selected{{end}} value="10">10 per page</option>
+            <option {{if eq .PerPage 25}}selected{{end}} value="25">25 per page</option>
+            <option {{if eq .PerPage 50}}selected{{end}} value="50">50 per page</option>
+        </select>
+    </div>
+{{end}}
+
+{{ define "page-indicator" }}
+<div id="page-indicator" {{if .OOBPageIndicator }} hx-swap-oob="true" {{end}}>
+        <input hx-get="/" hx-trigger="input" hx-target="#todos" hx-include=".table-control" type="number" value="{{.Page}}" class="table-control w-20 px-4 py-2 border border-2 rounded-md focus:outline-none focus:border-indigo-500" min="1" max="{{.PageCount}}" name="page"> Of <span class="font-bold">{{.PageCount}}</span> Pages
+    </div>
+{{end}}
